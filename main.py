@@ -126,27 +126,74 @@ if __name__ == '__main__':
     """
 
 
-    # 1 爬取列表的所有笔记信息 笔记链接 如下所示 注意此url会过期！
-    notes = [
-        r'https://www.xiaohongshu.com/explore/683fe17f0000000023017c6a?xsec_token=ABBr_cMzallQeLyKSRdPk9fwzA0torkbT_ubuQP1ayvKA=&xsec_source=pc_user',
-    ]
-    data_spider.spider_some_note(notes, cookies_str, base_path, 'all', 'test')
+    # # 1 爬取列表的所有笔记信息 笔记链接 如下所示 注意此url会过期！
+    # notes = [
+    #     r'https://www.xiaohongshu.com/explore/683fe17f0000000023017c6a?xsec_token=ABBr_cMzallQeLyKSRdPk9fwzA0torkbT_ubuQP1ayvKA=&xsec_source=pc_user',
+    # ]
+    # data_spider.spider_some_note(notes, cookies_str, base_path, 'all', 'test')
 
-    # 2 爬取用户的所有笔记信息 用户链接 如下所示 注意此url会过期！
-    user_url = 'https://www.xiaohongshu.com/user/profile/64c3f392000000002b009e45?xsec_token=AB-GhAToFu07JwNk_AMICHnp7bSTjVz2beVIDBwSyPwvM=&xsec_source=pc_feed'
-    data_spider.spider_user_all_note(user_url, cookies_str, base_path, 'all')
+    # # 2 爬取用户的所有笔记信息 用户链接 如下所示 注意此url会过期！
+    # user_url = 'https://www.xiaohongshu.com/user/profile/64c3f392000000002b009e45?xsec_token=AB-GhAToFu07JwNk_AMICHnp7bSTjVz2beVIDBwSyPwvM=&xsec_source=pc_feed'
+    # data_spider.spider_user_all_note(user_url, cookies_str, base_path, 'all')
 
-    # 3 搜索指定关键词的笔记
-    query = "榴莲"
-    query_num = 10
-    sort_type_choice = 0  # 0 综合排序, 1 最新, 2 最多点赞, 3 最多评论, 4 最多收藏
-    note_type = 0 # 0 不限, 1 视频笔记, 2 普通笔记
-    note_time = 0  # 0 不限, 1 一天内, 2 一周内天, 3 半年内
+    # # 3 搜索指定关键词的笔记
+    # query = "京东外卖"
+    # query_num = 50
+    # sort_type_choice = 1  # 0 综合排序, 1 最新, 2 最多点赞, 3 最多评论, 4 最多收藏
+    # note_type = 2 # 0 不限, 1 视频笔记, 2 普通笔记
+    # note_time = 1  # 0 不限, 1 一天内, 2 一周内天, 3 半年内
+    # note_range = 0  # 0 不限, 1 已看过, 2 未看过, 3 已关注
+    # pos_distance = 0  # 0 不限, 1 同城, 2 附近 指定这个1或2必须要指定 geo
+    # data_spider.spider_some_search_note(query, query_num, cookies_str, base_path, 'excel', sort_type_choice, note_type, note_time, note_range, pos_distance, geo=None)
+
+# 4 搜索多个关键词的笔记
+
+    keywords = ["京东外卖", "美团外卖", "淘宝闪购"]
+    keywords_num = 10  # 每个关键词搜索的数量
+    sort_type_choice = 1  # 0 综合排序, 1 最新, 2 最多点赞, 3 最多评论, 4 最多收藏
+    note_type = 2  # 0 不限, 1 视频笔记, 2 普通笔记
+    note_time = 1  # 0 不限, 1 一天内, 2 一周内天, 3 半年内
     note_range = 0  # 0 不限, 1 已看过, 2 未看过, 3 已关注
-    pos_distance = 0  # 0 不限, 1 同城, 2 附近 指定这个1或2必须要指定 geo
-    # geo = {
-    #     # 经纬度
-    #     "latitude": 39.9725,
-    #     "longitude": 116.4207
-    # }
-    data_spider.spider_some_search_note(query, query_num, cookies_str, base_path, 'all', sort_type_choice, note_type, note_time, note_range, pos_distance, geo=None)
+    pos_distance = 0  # 0 不限, 1 同城, 2 附近
+
+    # 方法1：分别搜索每个关键词然后合并结果（推荐）
+    logger.info("=== 开始多关键词分别搜索 ===")
+    success, msg, multi_notes = data_spider.xhs_apis.search_multiple_keywords(
+        keywords, keywords_num, cookies_str, sort_type_choice, note_type,
+        note_time, note_range, pos_distance, geo=None
+    )
+    logger.info(f"多关键词搜索结果: {success}, {msg}")
+    if success and multi_notes:
+        logger.info(f"共获取 {len(multi_notes)} 条笔记")
+        # 获取笔记详情
+        note_urls = []
+        for note in multi_notes:
+            note_url = f"https://www.xiaohongshu.com/explore/{note['id']}?xsec_token={note['xsec_token']}"
+            note_urls.append(note_url)
+        data_spider.spider_some_note(note_urls, cookies_str, base_path, 'excel', 'multi_keywords_search')
+
+
+
+
+
+
+
+
+
+
+# # 方法2：将关键词组合成一个字符串搜索
+# logger.info("=== 开始多关键词组合搜索 ===")
+# success, msg, combined_notes = data_spider.xhs_apis.search_multiple_keywords_combined(
+#     keywords, keywords_num * len(keywords), cookies_str, sort_type_choice, note_type,
+#     note_time, note_range, pos_distance, geo=None
+# )
+# logger.info(f"多关键词组合搜索结果: {success}, {msg}")
+# if success and combined_notes:
+#     logger.info(f"共获取 {len(combined_notes)} 条笔记")
+#     # 获取笔记详情
+#     note_urls = []
+#     for note in combined_notes:
+#         note_url = f"https://www.xiaohongshu.com/explore/{note['id']}?xsec_token={note['xsec_token']}"
+#         note_urls.append(note_url)
+#     data_spider.spider_some_note(note_urls, cookies_str, base_path, 'excel', 'combined_keywords_search')
+    

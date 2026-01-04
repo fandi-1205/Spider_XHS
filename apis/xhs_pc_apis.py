@@ -554,6 +554,76 @@ class XHS_Apis():
             note_list = note_list[:require_num]
         return success, msg, note_list
 
+    def search_multiple_keywords(self, keywords: list, require_num: int, cookies_str: str, sort_type_choice=0, note_type=0, note_time=0, note_range=0, pos_distance=0, geo="", proxies: dict = None):
+        """
+            多关键词搜索笔记，对每个关键词分别搜索并合并结果
+            :param keywords: 搜索的关键词列表
+            :param require_num: 每个关键词搜索的数量
+            :param cookies_str: 你的cookies
+            :param sort_type_choice: 排序方式 0 综合排序, 1 最新, 2 最多点赞, 3 最多评论, 4 最多收藏
+            :param note_type: 笔记类型 0 不限, 1 视频笔记, 2 普通笔记
+            :param note_time: 笔记时间 0 不限, 1 一天内, 2 一周内天, 3 半年内
+            :param note_range: 笔记范围 0 不限, 1 已看过, 2 未看过, 3 已关注
+            :param pos_distance: 位置距离 0 不限, 1 同城, 2 附近 指定这个必须要指定 geo
+            :param geo: 定位信息 经纬度
+            返回所有关键词搜索合并后的结果
+        """
+        all_notes = []
+        total_success = True
+        error_messages = []
+        
+        try:
+            for keyword in keywords:
+                success, msg, notes = self.search_some_note(keyword, require_num, cookies_str, sort_type_choice, note_type, note_time, note_range, pos_distance, geo, proxies)
+                if success and notes:
+                    all_notes.extend(notes)
+                else:
+                    total_success = False
+                    error_messages.append(f"关键词 '{keyword}' 搜索失败: {msg}")
+            
+            # 去重：根据note_id去除重复笔记
+            seen_ids = set()
+            unique_notes = []
+            for note in all_notes:
+                note_id = note.get('id', '')
+                if note_id and note_id not in seen_ids:
+                    seen_ids.add(note_id)
+                    unique_notes.append(note)
+            
+            final_msg = f"成功搜索 {len(unique_notes)} 条笔记" if total_success else "; ".join(error_messages)
+            return total_success, final_msg, unique_notes
+            
+        except Exception as e:
+            return False, f"多关键词搜索异常: {str(e)}", []
+
+    def search_multiple_keywords_combined(self, keywords: list, require_num: int, cookies_str: str, sort_type_choice=0, note_type=0, note_time=0, note_range=0, pos_distance=0, geo="", proxies: dict = None):
+        """
+            多关键词组合搜索，将关键词合并为一个字符串进行搜索
+            :param keywords: 搜索的关键词列表
+            :param require_num: 搜索的总数量
+            :param cookies_str: 你的cookies
+            :param sort_type_choice: 排序方式 0 综合排序, 1 最新, 2 最多点赞, 3 最多评论, 4 最多收藏
+            :param note_type: 笔记类型 0 不限, 1 视频笔记, 2 普通笔记
+            :param note_time: 笔记时间 0 不限, 1 一天内, 2 一周内天, 3 半年内
+            :param note_range: 笔记范围 0 不限, 1 已看过, 2 未看过, 3 已关注
+            :param pos_distance: 位置距离 0 不限, 1 同城, 2 附近 指定这个必须要指定 geo
+            :param geo: 定位信息 经纬度
+            返回组合关键词搜索的结果
+        """
+        try:
+            # 将多个关键词用空格连接
+            combined_query = " ".join(keywords)
+            success, msg, notes = self.search_some_note(combined_query, require_num, cookies_str, sort_type_choice, note_type, note_time, note_range, pos_distance, geo, proxies)
+            
+            if success:
+                final_msg = f"组合关键词 '{combined_query}' 搜索成功，共 {len(notes)} 条笔记"
+                return True, final_msg, notes
+            else:
+                return False, f"组合关键词搜索失败: {msg}", []
+                
+        except Exception as e:
+            return False, f"组合关键词搜索异常: {str(e)}", []
+
     def search_user(self, query: str, cookies_str: str, page=1, proxies: dict = None):
         """
             获取搜索用户的结果
